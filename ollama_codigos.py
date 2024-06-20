@@ -24,7 +24,7 @@ def enviar_mensagem(pergunta, contexto):
     messages.extend(contexto)
     messages.append({"role": "user", "content": pergunta})
     response = client.chat.completions.create(
-        model="llama-13b-chat",
+        model="llama-70b-chat",
         messages=messages
     )
     return response.choices[0].message.content, messages
