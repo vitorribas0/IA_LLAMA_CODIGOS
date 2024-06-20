@@ -35,7 +35,7 @@ def enviar_mensagem(pergunta, contexto_atual):
     return response.choices[0].message.content, novo_contexto
 
 # Interface Streamlit para envio de pergunta
-pergunta = st.chat_input("Digite sua pergunta para a IA:")
+pergunta = st.text_input("Digite sua pergunta para a IA:")
 
 # Botão para limpar o histórico de conversas
 if st.button("Limpar Histórico de Conversas"):
@@ -44,7 +44,7 @@ if st.button("Limpar Histórico de Conversas"):
 
 if pergunta:
     # Recupera o contexto atual da última conversa
-    c.execute("SELECT context FROM conversation_history ORDER BY ROWID DESC LIMIT 1")
+    c.execute("SELECT context FROM conversation_history ORDER BY rowid DESC LIMIT 1")
     resultado = c.fetchone()
     contexto_atual = resultado[0] if resultado else None
     
