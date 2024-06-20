@@ -58,7 +58,7 @@ st.title("Chat com OpenAI")
 c.execute("SELECT * FROM conversation_history")
 for row in c.fetchall():
     if row[0] == "🙎^{😊:":
-        st.write(f'<div style="background-color: #87CEEB; padding: 10px; border-radius: 10px; color: #FFFFFF; float: right">{row[1]}</div>', unsafe_allow_html=True)
+        st.write(f'<div style="background-color: #87CEEB; padding: 10px; border-radius: 10px; color: #FFFFFF; float: left">{row[1]}</div>', unsafe_allow_html=True)
     else:
         st.write(f'<div style="background-color: #87CEEB; padding: 10px; border-radius: 10px; color: #FFFFFF; float: left">{row[1']}</div>', unsafe_allow_html=True)
 
