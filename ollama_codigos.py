@@ -14,39 +14,46 @@ client = OpenAI(
 conn = sqlite3.connect('chat_history.db')
 c = conn.cursor()
 
-# Criar a tabela se não existir
+# Criar a tabela se não existir (incluindo contexto)
 c.execute('''CREATE TABLE IF NOT EXISTS conversation_history 
-             (role text, message text)''')
+             (role text, message text, context text)''')
 
 # Função para enviar mensagem e obter resposta
-def enviar_mensagem(pergunta):
-    # Enviar a mensagem para a IA e obter a resposta
+def enviar_mensagem(pergunta, contexto_atual):
+    messages = [
+        {"role": "system", "content": "Olá! Sou um especialista em Python, Pandas, PySpark e AWS."},
+        {"role": "user", "content": pergunta, "context": contexto_atual}
+    ]
+    
     response = client.chat.completions.create(
         model="llama-13b-chat",
-        messages=[
-            {"role": "system", "content": "Olá! Sou um especialista em Python, Pandas, PySpark e AWS."},
-            {"role": "user", "content": pergunta}
-        ]
+        messages=messages
     )
-    return response.choices[0].message.content
+    
+    # Atualiza o contexto para a próxima interação
+    novo_contexto = response.choices[0].message.context
+    return response.choices[0].message.content, novo_contexto
 
 # Interface Streamlit para envio de pergunta
-pergunta = st.chat_input("Digite sua pergunta para a IA:")
+pergunta = st.text_input("Digite sua pergunta para a IA:")
 
 # Botão para limpar o histórico de conversas
 if st.button("Limpar Histórico de Conversas"):
     c.execute("DELETE FROM conversation_history")
     conn.commit()
 
-# Enviar a pergunta para a IA quando o usuário enviar a mensagem
 if pergunta:
-    # Adicionar a pergunta ao histórico de conversa
-    c.execute("INSERT INTO conversation_history VALUES (?, ?)", ("🙎‍♂:", pergunta))
-    conn.commit()
-    # Envie a pergunta para a IA e obtenha a resposta
-    resposta = enviar_mensagem(pergunta)
-    # Adicionar a resposta ao histórico de conversa
-    c.execute("INSERT INTO conversation_history VALUES (?, ?)", ("🤖:", resposta))
+    # Recupera o contexto atual da última conversa
+    c.execute("SELECT context FROM conversation_history ORDER BY ROWID DESC LIMIT 1")
+    resultado = c.fetchone()
+    contexto_atual = resultado[0] if resultado else None
+    
+    # Envia a pergunta para a IA com o contexto atual
+    resposta, novo_contexto = enviar_mensagem(pergunta, contexto_atual)
+    
+    # Salva a pergunta, resposta e novo contexto no banco de dados
+    c.execute("INSERT INTO conversation_history VALUES (?, ?, ?)", ("🙎‍♂:", pergunta, novo_contexto))
+    c.execute("INSERT INTO conversation_history VALUES (?, ?, ?)", ("🤖:", resposta, novo_contexto))
     conn.commit()
 
 # Barra lateral
