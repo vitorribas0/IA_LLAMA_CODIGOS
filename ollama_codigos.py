@@ -2,7 +2,7 @@ import streamlit as st
 import sqlite3
 from openai import OpenAI
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide")  # Configuração para layout de página amplo
 
 # Inicialize o cliente OpenAI
 client = OpenAI(
@@ -19,15 +19,16 @@ c.execute('''CREATE TABLE IF NOT EXISTS conversation_history
              (role text, message text)''')
 
 # Função para enviar mensagem e obter resposta
-def enviar_mensagem(pergunta, contexto):
-    messages = [{"role": "system", "content": "Olá! Sou um especialista em Python, Pandas, PySpark e AWS."}]
-    messages.extend(contexto)
-    messages.append({"role": "user", "content": pergunta})
+def enviar_mensagem(pergunta):
+    # Enviar a mensagem para a IA e obter a resposta
     response = client.chat.completions.create(
         model="llama-13b-chat",
-        messages=messages
+        messages=[
+            {"role": "system", "content": "Olá! Sou um especialista em Python, Pandas, PySpark e AWS."},
+            {"role": "user", "content": pergunta}
+        ]
     )
-    return response.choices[0].message.content, messages
+    return response.choices[0].message.content
 
 # Interface Streamlit para envio de pergunta
 pergunta = st.chat_input("Digite sua pergunta para a IA:")
@@ -39,27 +40,25 @@ if st.button("Limpar Histórico de Conversas"):
 
 # Enviar a pergunta para a IA quando o usuário enviar a mensagem
 if pergunta:
-    c.execute("SELECT * FROM conversation_history")
-    contexto = [{"role": row[0], "content": row[1]} for row in c.fetchall()]
-    resposta, contexto = enviar_mensagem(pergunta, contexto)
-    c.execute("INSERT INTO conversation_history VALUES (?, ?)", ("🙎^{😊:", pergunta))
+    # Adicionar a pergunta ao histórico de conversa
+    c.execute("INSERT INTO conversation_history VALUES (?, ?)", ("🙎‍♂:", pergunta))
     conn.commit()
+    # Envie a pergunta para a IA e obtenha a resposta
+    resposta = enviar_mensagem(pergunta)
+    # Adicionar a resposta ao histórico de conversa
     c.execute("INSERT INTO conversation_history VALUES (?, ?)", ("🤖:", resposta))
     conn.commit()
 
 # Barra lateral
-st.sidebar.markdown("Este é um projeto feito utilizando a OpenAI.")
+st.sidebar.title("🦙 LLAMA 2")  # Título na barra lateral
+# Adicionando uma descrição na barra lateral
+st.sidebar.markdown("Este é um projeto feito utilizando o 🦙 LLAMA 2.")
 
-# Título da página
 st.title("Chat com OpenAI")
 
 # Carregar e exibir o histórico de conversa do banco de dados
-c.execute("SELECT * FROM conversation_history")
-for row in c.fetchall():
-    if row[0] == "🙎^{😊:":
-        st.write(f'<div style="background-color: #87CEEB; padding: 10px; border-radius: 10px; color: #FFFFFF; float: right">{row[1]}</div>', unsafe_allow_html=True)
-    else:
-        st.write(f'<div style="background-color: #87CEEB; padding: 10px; border-radius: 10px; color: #FFFFFF; float: left">{row[1]}</div>', unsafe_allow_html=True)
+for row in c.execute("SELECT * FROM conversation_history"):
+    st.write(row[0], row[1])
 
 # Fechar a conexão com o banco de dados
 conn.close()
