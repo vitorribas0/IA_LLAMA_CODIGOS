@@ -1,11 +1,14 @@
 import streamlit as st
 import sqlite3
-import openai
+from openai import OpenAI
 
 st.set_page_config(layout="wide")  # Configuração para layout de página amplo
 
 # Inicialize o cliente OpenAI
-openai.api_key = "LL-rZdxy5UFL4evTVeC6H1Jzuph00H08neiKQUGm3HSYOm1qMD4T8YxonRYedIH6856"
+client = OpenAI(
+    api_key="LL-rZdxy5UFL4evTVeC6H1Jzuph00H08neiKQUGm3HSYOm1qMD4T8YxonRYedIH6856",
+    base_url="https://api.llama-api.com"
+)
 
 # Conexão com o banco de dados SQLite
 conn = sqlite3.connect('chat_history.db')
@@ -13,50 +16,46 @@ c = conn.cursor()
 
 # Criar a tabela se não existir
 c.execute('''CREATE TABLE IF NOT EXISTS conversation_history 
-             (role TEXT, message TEXT)''')
+             (role text, message text)''')
 
 # Função para enviar mensagem e obter resposta
-def send_message(role, message):
-    # Salvar a mensagem no banco de dados
-    c.execute("INSERT INTO conversation_history (role, message) VALUES (?, ?)", (role, message))
-    conn.commit()
-    
-    # Obter resposta da IA
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt=message,
-        max_tokens=150
+def enviar_mensagem(pergunta, contexto):
+    messages = [{"role": "system", "content": "Olá! Sou um especialista em Python, Pandas, PySpark e AWS."}]
+    messages.extend(contexto)
+    messages.append({"role": "user", "content": pergunta})
+    response = client.chat.completions.create(
+        model="llama-13b-chat",
+        messages=messages
     )
-    
-    # Salvar a resposta no banco de dados
-    response_message = response.choices[0].text.strip()
-    c.execute("INSERT INTO conversation_history (role, message) VALUES (?, ?)", ("assistant", response_message))
+    return response.choices[0].message.content, messages
+
+# Interface Streamlit para envio de pergunta
+pergunta = st.text_input("Digite sua pergunta para a IA:")
+if pergunta:
+    c.execute("SELECT * FROM conversation_history")
+    contexto = [{"role": row[0], "content": row[1]} for row in c.fetchall()]
+    resposta, contexto = enviar_mensagem(pergunta, contexto)
+    c.execute("INSERT INTO conversation_history VALUES (?, ?)", ("🙎‍♂:", pergunta))
     conn.commit()
-    
-    return response_message
+    c.execute("INSERT INTO conversation_history VALUES (?, ?)", ("🤖:", resposta))
+    conn.commit()
 
-# Função para exibir o histórico da conversa
-def get_conversation_history():
-    c.execute("SELECT role, message FROM conversation_history")
-    return c.fetchall()
+# Botão para limpar o histórico de conversas
+if st.button("Limpar Histórico de Conversas"):
+    c.execute("DELETE FROM conversation_history")
+    conn.commit()
 
-# Interface do usuário com Streamlit
-st.title("Chat com IA")
+# Barra lateral
+st.sidebar.title("🦙 LLAMA 2")  # Título na barra lateral
+# Adicionando uma descrição na barra lateral
+st.sidebar.markdown("Este é um projeto feito utilizando o 🦙 LLAMA 2.")
 
-# Exibir histórico da conversa
-st.subheader("Histórico da Conversa")
-conversation_history = get_conversation_history()
-for role, message in conversation_history:
-    if role == "user":
-        st.text(f"Você: {message}")
-    else:
-        st.text(f"IA: {message}")
+st.title("Chat com OpenAI")
 
-# Entrada do usuário
-user_input = st.text_input("Você:", "")
-if st.button("Enviar"):
-    if user_input:
-        response = send_message("user", user_input)
-        st.text(f"IA: {response}")
+# Carregar e exibir o histórico de conversa do banco de dados
+c.execute("SELECT * FROM conversation_history")
+for row in c.fetchall():
+    st.write(row[0], row[1])
 
+# Fechar a conexão com o banco de dados
 conn.close()
