@@ -1,14 +1,11 @@
 import streamlit as st
 import sqlite3
-from openai import OpenAI
+import openai
 
 st.set_page_config(layout="wide")  # Configuração para layout de página amplo
 
 # Inicialize o cliente OpenAI
-client = OpenAI(
-    api_key="LL-rZdxy5UFL4evTVeC6H1Jzuph00H08neiKQUGm3HSYOm1qMD4T8YxonRYedIH6856",
-    base_url="https://api.llama-api.com"
-)
+openai.api_key = "LL-rZdxy5UFL4evTVeC6H1Jzuph00H08neiKQUGm3HSYOm1qMD4T8YxonRYedIH6856"
 
 # Conexão com o banco de dados SQLite
 conn = sqlite3.connect('chat_history.db')
@@ -25,14 +22,14 @@ def send_message(role, message):
     conn.commit()
     
     # Obter resposta da IA
-    response = client.Completion.create(
-        model="text-davinci-003",  # Use um modelo apropriado para sua API
+    response = openai.Completion.create(
+        model="text-davinci-003",
         prompt=message,
         max_tokens=150
     )
     
     # Salvar a resposta no banco de dados
-    response_message = response['choices'][0]['text'].strip()
+    response_message = response.choices[0].text.strip()
     c.execute("INSERT INTO conversation_history (role, message) VALUES (?, ?)", ("assistant", response_message))
     conn.commit()
     
