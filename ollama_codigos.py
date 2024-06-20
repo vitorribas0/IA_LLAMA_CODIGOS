@@ -30,7 +30,14 @@ def enviar_mensagem(pergunta, contexto):
     return response.choices[0].message.content, messages
 
 # Interface Streamlit para envio de pergunta
-pergunta = st.text_input("Digite sua pergunta para a IA:")
+pergunta = st.chat_input("Digite sua pergunta para a IA:")
+
+# Botão para limpar o histórico de conversas
+if st.button("Limpar Histórico de Conversas"):
+    c.execute("DELETE FROM conversation_history")
+    conn.commit()
+
+# Enviar a pergunta para a IA quando o usuário enviar a mensagem
 if pergunta:
     c.execute("SELECT * FROM conversation_history")
     contexto = [{"role": row[0], "content": row[1]} for row in c.fetchall()]
@@ -38,11 +45,6 @@ if pergunta:
     c.execute("INSERT INTO conversation_history VALUES (?, ?)", ("🙎‍♂:", pergunta))
     conn.commit()
     c.execute("INSERT INTO conversation_history VALUES (?, ?)", ("🤖:", resposta))
-    conn.commit()
-
-# Botão para limpar o histórico de conversas
-if st.button("Limpar Histórico de Conversas"):
-    c.execute("DELETE FROM conversation_history")
     conn.commit()
 
 # Barra lateral
